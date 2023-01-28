@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const app = express();
+const Thing = require('./models/Thing');
 
 mongoose.connect('mongodb+srv://Flo974:mongoDB974@cluster0.jiqgava.mongodb.net/test?retryWrites=true&w=majority',
   { useNewUrlParser: true,
@@ -18,32 +19,25 @@ app.use((req, res, next) => {
 });
 
 app.post('/api/stuff', (req, res, next) => {
-  console.log(req.body);
-  res.status(201).json({
-    message: 'Objet créé'
+  delete req.body._id; // suppression de l'id donné automatiquement par mongoose
+  const thing = new Thing({
+    ...req.body // ... => copie de tous les éléments de req.body
   });
+  thing.save() // enregistre dans la base de donnée
+    .then(() => res.status(201).json({ message: 'Objet enregistré !'}))
+    .catch(error => res.status(400).json({ error }));
 });
 
-app.get('/api/stuff', (req, res, next) => {
-  const stuff = [
-    {
-      _id: 'oeihfzeoi',
-      title: 'Mon premier objet',
-      description: 'Les infos de mon premier objet',
-      imageUrl: 'https://cdn.pixabay.com/photo/2019/06/11/18/56/camera-4267692_1280.jpg',
-      price: 4900,
-      userId: 'qsomihvqios',
-    },
-    {
-      _id: 'oeihfzeomoihi',
-      title: 'Mon deuxième objet',
-      description: 'Les infos de mon deuxième objet',
-      imageUrl: 'https://cdn.pixabay.com/photo/2019/06/11/18/56/camera-4267692_1280.jpg',
-      price: 2900,
-      userId: 'qsomihvqios',
-    },
-  ];
-  res.status(200).json(stuff);
+app.get('/api/stuff/:id', (req, res, next) => { // : => indique que la partie de la route qui suit est dynamique
+  Thing.findOne({ _id: req.params.id }) // findOne => trouve un seul // _id est le même que req.params.id
+    .then(thing => res.status(200).json(thing))
+    .catch(error => res.status(404).json({ error }));
+});
+
+app.get('/api/stuff', (req, res, next) => { // ou app.use
+  Thing.find() // envoie un tableau contenant tous les things de notre bdd
+    .then(things => res.status(200).json(things))
+    .catch(error => res.status(400).json({ error }));
 });
 
 module.exports = app;
